@@ -29,7 +29,7 @@ This page provides instructions on how to enable SSL for the network communicati
 SSL can be enabled for all network communication between flink components. SSL keystores and truststore has to be deployed on each flink node and configured (conf/flink-conf.yaml) using keys in the security.ssl.* namespace (Please see the [configuration page](config.html) for details). SSL can be selectively enabled/disabled for different transports using the following flags. These flags are only applicable when security.ssl.enabled is set to true.
 
 * **taskmanager.data.ssl.enabled**: SSL flag for data communication between task managers
-* **blob.service.ssl.enabled**: SSL flag for BLOB service client/server communication
+* **blob.service.ssl.enabled**: SSL flag for blob service client/server communication
 * **akka.ssl.enabled**: SSL flag for the akka based control connection between the flink client, jobmanager and taskmanager 
 * **jobmanager.web.ssl.enabled**: Flag to enable https access to the jobmanager's web frontend
 
@@ -47,7 +47,8 @@ keytool -importcert -keystore ca.truststore -alias ca -storepass password -nopro
 ~~~
 
 Now create keystores for each node with certificates signed by the above CA. Let node1.company.org and node2.company.org be the hostnames with IPs 192.168.1.1 and 192.168.1.2 respectively
-Node 1:
+
+**Node 1**
 ~~~
 keytool -genkeypair -alias node1 -keystore node1.keystore -dname "CN=node1.company.org" -ext SAN=dns:node1.company.org,ip:192.168.1.1 -storepass password -keypass password -keyalg RSA
 keytool -certreq -keystore node1.keystore -storepass password -alias node1 -file node1.csr
@@ -56,7 +57,7 @@ keytool -importcert -keystore node1.keystore -storepass password -file ca.cer -a
 keytool -importcert -keystore node1.keystore -storepass password -file node1.cer -alias node1 -noprompt
 ~~~
 
-Node 2:
+**Node 2**
 ~~~
 keytool -genkeypair -alias node2 -keystore node2.keystore -dname "CN=node2.company.org" -ext SAN=dns:node2.company.org,ip:192.168.1.2 -storepass password -keypass password -keyalg RSA
 keytool -certreq -keystore node2.keystore -storepass password -alias node2 -file node2.csr
@@ -72,7 +73,7 @@ Configure each node in the standalone cluster to pick up the keystore and trusts
 * Generate 2 keystores, one for each node, and copy them to the filesystem on the respective node. Also copy the pulic key of the CA (which was used to sign the certificates in the keystore) as a Java truststore on both the nodes
 * Configure conf/flink-conf.yaml to pick up these files
 
-#### Node1:
+#### Node 1
 ~~~
 security.ssl.enabled: true
 security.ssl.keystore: /usr/local/node1.keystore
@@ -82,7 +83,7 @@ security.ssl.truststore: /usr/local/common-ca.truststore
 security.ssl.truststore-password: abc123
 ~~~
 
-#### Node2:
+#### Node 2
 ~~~
 security.ssl.enabled: true
 security.ssl.keystore: /usr/local/node2.keystore
@@ -102,7 +103,7 @@ The keystores and truststore can be deployed in a YARN setup in multiple ways de
 ### 1. Deploy keystores before starting the YARN session
 The keystores and truststore should be generated and deployed on all nodes in the YARN setup where flink components can potentially be executed. The same flink config file from the flink YARN client is used for all the flink components running in the YARN cluster. Therefore we need to ensure the keystore is deployed and accessible using the same filepath in all the YARN nodes.
 
-#### Example config:
+#### Example config
 ~~~
 security.ssl.enabled: true
 security.ssl.keystore: /usr/local/node.keystore
@@ -112,11 +113,14 @@ security.ssl.truststore: /usr/local/common-ca.truststore
 security.ssl.truststore-password: abc123
 ~~~
 
-Now you can start the YARN session from the CLI like you would do normally.
+Now you can start the YARN session from the CLI like you would normally do.
 
 ### 2. Use YARN cli to deploy the keystores and truststore
-We can use the YARN client's ship files option (-yt) to distribute the keystores and truststore. Since the same keystore will be deployed at all nodes, we need to ensure the certificate in the keystore can be served for all nodes. This can be done by either using the Subject Alternative Name(SAN) extension in the certificate and setting it to cover all nodes (hostname and ip addresses) in the cluster or by using wildcard subdomain names (if the cluster is setup accordingly). For example supply the following parameters to the keytool command when generating the keystore: -ext SAN=dns:node1.company.org,ip:192.168.1.1,dns:node2.company.org,ip:192.168.1.2.
-* Copy the keystore and the CA's truststore into a local directory (at the cli's working directory), say deploy-keys/. 
+We can use the YARN client's ship files option (-yt) to distribute the keystores and truststore. Since the same keystore will be deployed at all nodes, we need to ensure a single certificate in the keystore can be served for all nodes. This can be done by either using the Subject Alternative Name(SAN) extension in the certificate and setting it to cover all nodes (hostname and ip addresses) in the cluster or by using wildcard subdomain names (if the cluster is setup accordingly). 
+
+**Example**
+* Spply the following parameters to the keytool command when generating the keystore: -ext SAN=dns:node1.company.org,ip:192.168.1.1,dns:node2.company.org,ip:192.168.1.2.
+* Copy the keystore and the CA's truststore into a local directory (at the cli's working directory), say deploy-keys/
 * Update the configuration to pick up the files from a relative path
 ~~~
 security.ssl.enabled: true
@@ -128,6 +132,6 @@ security.ssl.truststore-password: password
 ~~~
 * Start the YARN session using the -yt parameter
 ~~~
-flink run -m yarn-cluster -yt deploykeys/ TestJob.jar
+flink run -m yarn-cluster -yt deploy-keys/ TestJob.jar
 ~~~
 
