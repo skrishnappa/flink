@@ -37,6 +37,34 @@ SSL can be enabled for all network communication between flink components. SSL k
 
 You need to have a Java Keystore generated and copied to each node in the flink cluster. The common name or subject alternative names in the certificate should match the node's hostname and IP address. Keystores and truststores can be generated using the keytool utility (https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html). All flink components should have read access to the keystore and truststore files.
 
+### Example: Creating self signed CA and keystores for a 2 node cluster
+
+Execute the following keytool commands to create a truststore with a self signed CA
+~~~
+keytool -genkeypair -alias ca -keystore ca.keystore -dname "CN=Sample CA" -storepass password -keypass password -keyalg RSA -ext bc=ca:true
+keytool -keystore ca.keystore -storepass password -alias ca -exportcert > ca.cer
+keytool -importcert -keystore ca.truststore -alias ca -storepass password -noprompt -file ca.cer
+~~~
+
+Now create keystores for each node with certificates signed by the above CA. Let node1.company.org and node2.company.org be the hostnames with IPs 192.168.1.1 and 192.168.1.2 respectively
+Node 1:
+~~~
+keytool -genkeypair -alias node1 -keystore node1.keystore -dname "CN=node1.company.org" -ext SAN=dns:node1.company.org,ip:192.168.1.1 -storepass password -keypass password -keyalg RSA
+keytool -certreq -keystore node1.keystore -storepass password -alias node1 -file node1.csr
+keytool -gencert -keystore ca.keystore -storepass password -alias ca -ext SAN=dns:node1.company.org,ip:192.168.1.1 -infile node1.csr -outfile node1.cer
+keytool -importcert -keystore node1.keystore -storepass password -file ca.cer -alias ca -noprompt
+keytool -importcert -keystore node1.keystore -storepass password -file node1.cer -alias node1 -noprompt
+~~~
+
+Node 2:
+~~~
+keytool -genkeypair -alias node2 -keystore node2.keystore -dname "CN=node2.company.org" -ext SAN=dns:node2.company.org,ip:192.168.1.2 -storepass password -keypass password -keyalg RSA
+keytool -certreq -keystore node2.keystore -storepass password -alias node2 -file node2.csr
+keytool -gencert -keystore ca.keystore -storepass password -alias ca -ext SAN=dns:node2.company.org,ip:192.168.1.2 -infile node2.csr -outfile node2.cer
+keytool -importcert -keystore node2.keystore -storepass password -file ca.cer -alias ca -noprompt
+keytool -importcert -keystore node2.keystore -storepass password -file node2.cer -alias node2 -noprompt
+~~~
+
 ## Standalone Deployment
 Configure each node in the standalone cluster to pick up the keystore and truststore files present in the local file system.
 
@@ -69,9 +97,12 @@ security.ssl.truststore-password: abc123
 * The blob server and task manager's data communication can be verified from the log files
 
 ## YARN Deployment
+The keystores and truststore can be deployed in a YARN setup in multiple ways depending on the cluster setup. Following are 2 ways to achieve this
+
+### 1. Deploy keystores before starting the YARN session
 The keystores and truststore should be generated and deployed on all nodes in the YARN setup where flink components can potentially be executed. The same flink config file from the flink YARN client is used for all the flink components running in the YARN cluster. Therefore we need to ensure the keystore is deployed and accessible using the same filepath in all the YARN nodes.
 
-### Example config:
+#### Example config:
 ~~~
 security.ssl.enabled: true
 security.ssl.keystore: /usr/local/node.keystore
@@ -79,5 +110,24 @@ security.ssl.keystore-password: abc123
 security.ssl.key-password: abc123
 security.ssl.truststore: /usr/local/common-ca.truststore
 security.ssl.truststore-password: abc123
+~~~
+
+Now you can start the YARN session from the CLI like you would do normally.
+
+### 2. Use YARN cli to deploy the keystores and truststore
+We can use the YARN client's ship files option (-yt) to distribute the keystores and truststore. Since the same keystore will be deployed at all nodes, we need to ensure the certificate in the keystore can be served for all nodes. This can be done by either using the Subject Alternative Name(SAN) extension in the certificate and setting it to cover all nodes (hostname and ip addresses) in the cluster or by using wildcard subdomain names (if the cluster is setup accordingly). For example supply the following parameters to the keytool command when generating the keystore: -ext SAN=dns:node1.company.org,ip:192.168.1.1,dns:node2.company.org,ip:192.168.1.2.
+* Copy the keystore and the CA's truststore into a local directory (at the cli's working directory), say deploy-keys/. 
+* Update the configuration to pick up the files from a relative path
+~~~
+security.ssl.enabled: true
+security.ssl.keystore: deploy-keys/node.keystore
+security.ssl.keystore-password: password
+security.ssl.key-password: password
+security.ssl.truststore: deploy-keys/ca.truststore
+security.ssl.truststore-password: password
+~~~
+* Start the YARN session using the -yt parameter
+~~~
+flink run -m yarn-cluster -yt deploykeys/ TestJob.jar
 ~~~
 
