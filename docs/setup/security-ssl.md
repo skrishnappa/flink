@@ -33,7 +33,7 @@ SSL can be enabled for all network communication between flink components. SSL k
 * **akka.ssl.enabled**: SSL flag for the akka based control connection between the flink client, jobmanager and taskmanager 
 * **jobmanager.web.ssl.enabled**: Flag to enable https access to the jobmanager's web frontend
 
-## Deploying Keystores and truststores
+## Deploying Keystores and Truststores
 
 You need to have a Java Keystore generated and copied to each node in the flink cluster. The common name or subject alternative names in the certificate should match the node's hostname and IP address. Keystores and truststores can be generated using the keytool utility (https://docs.oracle.com/javase/8/docs/technotes/tools/unix/keytool.html). All flink components should have read access to the keystore and truststore files.
 
@@ -119,7 +119,7 @@ Now you can start the YARN session from the CLI like you would normally do.
 We can use the YARN client's ship files option (-yt) to distribute the keystores and truststore. Since the same keystore will be deployed at all nodes, we need to ensure a single certificate in the keystore can be served for all nodes. This can be done by either using the Subject Alternative Name(SAN) extension in the certificate and setting it to cover all nodes (hostname and ip addresses) in the cluster or by using wildcard subdomain names (if the cluster is setup accordingly). 
 
 **Example**
-* Spply the following parameters to the keytool command when generating the keystore: -ext SAN=dns:node1.company.org,ip:192.168.1.1,dns:node2.company.org,ip:192.168.1.2.
+* Supply the following parameters to the keytool command when generating the keystore: -ext SAN=dns:node1.company.org,ip:192.168.1.1,dns:node2.company.org,ip:192.168.1.2
 * Copy the keystore and the CA's truststore into a local directory (at the cli's working directory), say deploy-keys/
 * Update the configuration to pick up the files from a relative path
 ~~~
