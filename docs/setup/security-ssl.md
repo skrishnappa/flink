@@ -79,7 +79,7 @@ security.ssl.enabled: true
 security.ssl.keystore: /usr/local/node1.keystore
 security.ssl.keystore-password: abc123
 security.ssl.key-password: abc123
-security.ssl.truststore: /usr/local/common-ca.truststore
+security.ssl.truststore: /usr/local/ca.truststore
 security.ssl.truststore-password: abc123
 ~~~
 
@@ -89,7 +89,7 @@ security.ssl.enabled: true
 security.ssl.keystore: /usr/local/node2.keystore
 security.ssl.keystore-password: abc123
 security.ssl.key-password: abc123
-security.ssl.truststore: /usr/local/common-ca.truststore
+security.ssl.truststore: /usr/local/ca.truststore
 security.ssl.truststore-password: abc123
 ~~~
 
@@ -109,7 +109,7 @@ security.ssl.enabled: true
 security.ssl.keystore: /usr/local/node.keystore
 security.ssl.keystore-password: abc123
 security.ssl.key-password: abc123
-security.ssl.truststore: /usr/local/common-ca.truststore
+security.ssl.truststore: /usr/local/ca.truststore
 security.ssl.truststore-password: abc123
 ~~~
 
